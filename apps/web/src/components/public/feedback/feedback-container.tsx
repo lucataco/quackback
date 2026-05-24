@@ -42,6 +42,8 @@ interface FeedbackContainerProps {
   user?: { name: string | null; email: string } | null
   /** Whether anonymous voting is enabled (visitors can vote without signing in) */
   anonymousVotingEnabled?: boolean
+  /** Whether voting is enabled globally */
+  votingEnabled?: boolean
   /** Welcome card to render above the post list. Undefined / disabled = hidden. */
   welcomeCard?: PortalWelcomeCardData
 }
@@ -61,6 +63,7 @@ export function FeedbackContainer({
   defaultBoardId,
   user,
   anonymousVotingEnabled = false,
+  votingEnabled = true,
   welcomeCard,
 }: FeedbackContainerProps): React.ReactElement {
   const intl = useIntl()
@@ -70,7 +73,7 @@ export function FeedbackContainer({
 
   // List key for animations - only updates when data finishes loading
   // This prevents double animations when filters change (stale data → new data)
-  const filterKey = `${filters.board ?? currentBoard}-${filters.sort ?? currentSort}-${filters.search ?? currentSearch}-${(filters.status ?? []).join()}-${(filters.tagIds ?? []).join()}-${filters.minVotes ?? ''}-${filters.dateFrom ?? ''}-${filters.responded ?? ''}`
+  const filterKey = `${filters.board ?? currentBoard}-${filters.sort ?? currentSort}-${filters.search ?? currentSearch}-${filters.reportType ?? ''}-${(filters.status ?? []).join()}-${(filters.tagIds ?? []).join()}-${filters.minVotes ?? ''}-${filters.dateFrom ?? ''}-${filters.responded ?? ''}`
   const [listKey, setListKey] = useState(filterKey)
 
   const effectiveUser = session?.user
@@ -90,6 +93,7 @@ export function FeedbackContainer({
       board: activeBoard,
       search: activeSearch,
       sort: activeSort,
+      reportType: filters.reportType,
       status: activeStatuses.length > 0 ? activeStatuses : undefined,
       tagIds: activeTagIds.length > 0 ? activeTagIds : undefined,
       minVotes: filters.minVotes,
@@ -100,6 +104,7 @@ export function FeedbackContainer({
       activeBoard,
       activeSearch,
       activeSort,
+      filters.reportType,
       activeStatuses,
       activeTagIds,
       filters.minVotes,
@@ -113,6 +118,7 @@ export function FeedbackContainer({
     board: currentBoard,
     search: currentSearch,
     sort: currentSort,
+    reportType: filters.reportType,
   })
 
   // Only use initialData when current filters match what the server rendered
@@ -120,6 +126,7 @@ export function FeedbackContainer({
     mergedFilters.board === initialFiltersRef.current.board &&
     mergedFilters.search === initialFiltersRef.current.search &&
     mergedFilters.sort === initialFiltersRef.current.sort &&
+    mergedFilters.reportType === initialFiltersRef.current.reportType &&
     !mergedFilters.status?.length &&
     !mergedFilters.tagIds?.length &&
     !mergedFilters.minVotes &&
@@ -286,12 +293,14 @@ export function FeedbackContainer({
                         statuses={statuses}
                         voteCount={post.voteCount}
                         commentCount={post.commentCount}
+                        reportType={post.reportType}
                         authorName={post.authorName}
                         createdAt={post.createdAt}
                         boardSlug={post.board?.slug || ''}
+                        boardName={post.board?.name}
                         tags={post.tags}
                         isAuthenticated={!!effectiveUser}
-                        canVote={!!effectiveUser || anonymousVotingEnabled}
+                        canVote={votingEnabled && (!!effectiveUser || anonymousVotingEnabled)}
                         showAvatar={false}
                       />
                     </div>

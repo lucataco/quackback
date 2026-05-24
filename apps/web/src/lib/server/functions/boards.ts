@@ -29,6 +29,15 @@ const createBoardSchema = z.object({
     .max(100, 'Board name must be 100 characters or less'),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
   isPublic: z.boolean().default(true),
+  settings: z
+    .object({
+      roadmapStatusIds: z.array(z.string()).optional(),
+      appUrl: z.string().url().or(z.literal('')).optional(),
+      iconEmoji: z.string().max(16).optional(),
+      supportUrl: z.string().url().or(z.literal('')).optional(),
+    })
+    .strict()
+    .optional(),
 })
 
 const getBoardSchema = z.object({
@@ -38,6 +47,9 @@ const getBoardSchema = z.object({
 const boardSettingsSchema = z
   .object({
     roadmapStatusIds: z.array(z.string()).optional(),
+    appUrl: z.string().url().or(z.literal('')).optional(),
+    iconEmoji: z.string().max(16).optional(),
+    supportUrl: z.string().url().or(z.literal('')).optional(),
   })
   .strict()
 
@@ -133,6 +145,7 @@ export const createBoardFn = createServerFn({ method: 'POST' })
       name: data.name,
       description: data.description,
       isPublic: data.isPublic,
+      settings: data.settings as BoardSettings | undefined,
     })
     console.log(`[fn:boards] createBoardFn: id=${board.id}`)
     return serializeBoard(board)

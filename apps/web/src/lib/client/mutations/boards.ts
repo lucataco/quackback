@@ -41,7 +41,7 @@ export function useCreateBoard() {
         slug: slugify(input.name),
         description: input.description ?? null,
         isPublic: input.isPublic ?? true,
-        settings: {},
+        settings: (input.settings ?? {}) as Board['settings'],
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,

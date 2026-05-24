@@ -22,7 +22,7 @@ function FeedbackHeaderFallback() {
           type="text"
           placeholder={intl.formatMessage({
             id: 'portal.feedback.header.titlePlaceholder',
-            defaultMessage: "What's your idea?",
+            defaultMessage: 'Report a bug or share an idea',
           })}
           readOnly
           className="flex-1 bg-transparent border-0 outline-none text-foreground font-semibold placeholder:text-muted-foreground/60 placeholder:font-normal"

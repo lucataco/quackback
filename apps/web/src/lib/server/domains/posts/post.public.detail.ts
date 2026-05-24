@@ -46,6 +46,7 @@ export async function getPublicPostDetail(
         createdAt: posts.createdAt,
         pinnedCommentId: posts.pinnedCommentId,
         isCommentsLocked: posts.isCommentsLocked,
+        widgetMetadata: posts.widgetMetadata,
         boardId: boards.id,
         boardName: boards.name,
         boardSlug: boards.slug,
@@ -325,5 +326,11 @@ export async function getPublicPostDetail(
     pinnedComment,
     pinnedCommentId: pinnedComment ? (postResult.pinnedCommentId as CommentId) : null,
     isCommentsLocked: postResult.isCommentsLocked,
+    widgetMetadata: postResult.widgetMetadata,
+    reportType:
+      postResult.widgetMetadata?.reportType === 'bug' ||
+      postResult.widgetMetadata?.reportType === 'idea'
+        ? postResult.widgetMetadata.reportType
+        : null,
   }
 }

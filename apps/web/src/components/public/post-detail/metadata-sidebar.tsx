@@ -14,7 +14,7 @@ import {
   UserIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { CheckIcon } from '@heroicons/react/24/solid'
+import { BugAntIcon, CheckIcon, LightBulbIcon } from '@heroicons/react/24/solid'
 import { IconGitMerge, IconLock, IconLockOpen, IconTrash, IconRestore } from '@tabler/icons-react'
 import {
   DropdownMenu,
@@ -240,6 +240,8 @@ interface MetadataSidebarProps {
   postId: PostId
   voteCount: number
   status?: { id: string; name: string; color: string | null } | null
+  reportType?: 'bug' | 'idea' | null
+  widgetMetadata?: Record<string, string> | null
   board: { id: string; name: string; slug: string }
   authorName: string | null
   authorAvatarUrl?: string | null
@@ -298,6 +300,8 @@ export function MetadataSidebar({
   postId,
   voteCount,
   status,
+  reportType,
+  widgetMetadata,
   board,
   authorName,
   authorAvatarUrl,
@@ -352,6 +356,8 @@ export function MetadataSidebar({
   const availableTags = allTags.filter((t) => !tags.some((pt) => pt.id === t.id))
   const currentRoadmapIds = roadmaps.map((r) => r.id)
   const availableRoadmaps = allRoadmaps.filter((r) => !currentRoadmapIds.includes(r.id))
+  const ReportTypeIcon = reportType === 'bug' ? BugAntIcon : LightBulbIcon
+  const reportTypeLabel = reportType === 'bug' ? 'Bug' : reportType === 'idea' ? 'Idea' : null
 
   // Handlers for admin mode
   async function handleTagToggle(tagId: TagId) {
@@ -493,12 +499,66 @@ export function MetadataSidebar({
           )}
         </div>
 
-        {/* Board */}
+        {reportTypeLabel && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ReportTypeIcon className="h-4 w-4" />
+              <span>
+                <FormattedMessage id="portal.postDetail.metadata.type" defaultMessage="Type" />
+              </span>
+            </div>
+            <span className="text-sm font-medium text-foreground">{reportTypeLabel}</span>
+          </div>
+        )}
+
+        {(widgetMetadata?.affectedUrl ||
+          widgetMetadata?.browser ||
+          widgetMetadata?.environment) && (
+          <div className="space-y-2 border-t border-border/30 pt-4">
+            <p className="text-sm font-medium text-foreground">
+              <FormattedMessage
+                id="portal.postDetail.metadata.reportDetails"
+                defaultMessage="Report details"
+              />
+            </p>
+            {widgetMetadata.affectedUrl && (
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">URL</span>
+                <a
+                  href={widgetMetadata.affectedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="max-w-[65%] truncate text-primary hover:underline"
+                >
+                  {widgetMetadata.affectedUrl}
+                </a>
+              </div>
+            )}
+            {widgetMetadata.browser && (
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Browser</span>
+                <span className="max-w-[65%] text-end text-foreground">
+                  {widgetMetadata.browser}
+                </span>
+              </div>
+            )}
+            {widgetMetadata.environment && (
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Device</span>
+                <span className="max-w-[65%] text-end text-foreground">
+                  {widgetMetadata.environment}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* App */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <FolderIcon className="h-4 w-4" />
             <span>
-              <FormattedMessage id="portal.postDetail.metadata.board" defaultMessage="Board" />
+              <FormattedMessage id="portal.postDetail.metadata.board" defaultMessage="App" />
             </span>
           </div>
           {canEdit && onBoardChange && allBoards && allBoards.length > 0 ? (

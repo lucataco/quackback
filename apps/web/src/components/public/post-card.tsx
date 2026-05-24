@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Link } from '@tanstack/react-router'
 import {
+  BugAntIcon,
   ChevronUpIcon,
   ChatBubbleLeftIcon,
   EllipsisHorizontalIcon,
+  LightBulbIcon,
   PencilIcon,
   TrashIcon,
   LinkIcon,
@@ -43,6 +45,8 @@ interface PostCardProps {
   authorAvatarUrl?: string | null
   createdAt: Date | string
   boardSlug: string
+  boardName?: string
+  reportType?: 'bug' | 'idea' | null
   tags: { id: string; name: string; color?: string }[]
 
   // Portal mode props
@@ -95,6 +99,8 @@ export function PostCard({
   authorAvatarUrl,
   createdAt,
   boardSlug,
+  boardName,
+  reportType,
   tags,
   isAuthenticated = true,
   canVote = true,
@@ -120,6 +126,8 @@ export function PostCard({
   const isAdminMode = canChangeStatus || !!onClick
   const currentStatus = statuses.find((s) => s.id === statusId)
   const createdAtDate = typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+  const ReportTypeIcon = reportType === 'bug' ? BugAntIcon : LightBulbIcon
+  const reportTypeLabel = reportType === 'bug' ? 'Bug' : reportType === 'idea' ? 'Idea' : null
 
   // Vote handling - only used in portal mode
   const {
@@ -394,7 +402,22 @@ export function PostCard({
       {/* Main content */}
       <div className="flex-1 min-w-0">
         {/* Status badge/dropdown - above title */}
-        {statusDisplay}
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          {reportTypeLabel && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                reportType === 'bug'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-primary/10 text-primary'
+              )}
+            >
+              <ReportTypeIcon className="h-3 w-3" />
+              {reportTypeLabel}
+            </span>
+          )}
+          {statusDisplay}
+        </div>
         {/* Title */}
         <h3 className="font-semibold text-base text-foreground line-clamp-1">{title}</h3>
 
@@ -456,6 +479,12 @@ export function PostCard({
           </span>
           <span className="text-muted-foreground/40">·</span>
           <TimeAgo date={createdAtDate} className="text-muted-foreground/70" />
+          {boardName && (
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground/70 truncate">{boardName}</span>
+            </>
+          )}
           {commentCount > 0 && (
             <span className="flex items-center gap-1 text-muted-foreground/50 ms-auto">
               <ChatBubbleLeftIcon className="h-3.5 w-3.5" />

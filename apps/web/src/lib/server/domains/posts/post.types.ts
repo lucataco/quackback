@@ -6,6 +6,11 @@ import type { Post, Board, Tag, TiptapContent } from '@/lib/server/db'
 import type { PostId, BoardId, TagId, StatusId, PrincipalId, CommentId } from '@quackback/ids'
 import type { CommentReactionCount, CommentStatusChange } from '@/lib/shared'
 
+export const REPORT_TYPES = ['bug', 'idea'] as const
+export type ReportType = (typeof REPORT_TYPES)[number]
+
+export type PostReportMetadata = Record<string, string>
+
 /**
  * Input for creating a new post
  */
@@ -16,7 +21,7 @@ export interface CreatePostInput {
   contentJson?: TiptapContent | null
   statusId?: StatusId
   tagIds?: TagId[]
-  widgetMetadata?: Record<string, string>
+  widgetMetadata?: PostReportMetadata
   /** Override creation timestamp (admin-only, for imports) */
   createdAt?: Date
 }
@@ -90,6 +95,7 @@ export interface PublicPostListItem {
   commentCount: number
   tags: Array<{ id: TagId; name: string; color: string }>
   board?: { id: BoardId; name: string; slug: string }
+  reportType?: ReportType | null
 }
 
 /**
@@ -121,6 +127,7 @@ export interface InboxPostListParams {
   minComments?: number
   /** Filter by team response state */
   responded?: 'all' | 'responded' | 'unresponded'
+  reportType?: ReportType
   updatedBefore?: Date
   sort?: 'newest' | 'oldest' | 'votes'
   /** Show only soft-deleted posts (within 30-day restorable window) */
@@ -147,6 +154,7 @@ export interface PostListItem extends Post {
   commentCount: number
   /** Author name resolved from member->user relation */
   authorName: string | null
+  reportType?: ReportType | null
 }
 
 /**
@@ -250,6 +258,8 @@ export interface PublicPostDetail {
   pinnedCommentId: CommentId | null
   /** Whether comments are locked (portal users can't comment) */
   isCommentsLocked: boolean
+  widgetMetadata?: PostReportMetadata | null
+  reportType?: ReportType | null
 }
 
 /**

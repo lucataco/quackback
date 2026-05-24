@@ -53,6 +53,11 @@ export function CreateBoardDialog({
       name: '',
       description: '',
       isPublic: true,
+      settings: {
+        iconEmoji: '',
+        appUrl: '',
+        supportUrl: '',
+      },
     },
   })
 
@@ -92,9 +97,9 @@ export function CreateBoardDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Create new board</DialogTitle>
+              <DialogTitle>Create new app</DialogTitle>
               <DialogDescription>
-                Create a new feedback board to collect ideas from your users.
+                Create a new app/topic to collect bugs, ideas, and feedback from your users.
               </DialogDescription>
             </DialogHeader>
 
@@ -108,9 +113,23 @@ export function CreateBoardDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Board name</FormLabel>
+                    <FormLabel>App name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Feature Requests" {...field} />
+                      <Input placeholder="My App" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="settings.iconEmoji"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Icon</FormLabel>
+                    <FormControl>
+                      <Input placeholder="🪲" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,10 +144,38 @@ export function CreateBoardDialog({
                     <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Share your ideas and vote on features"
+                        placeholder="Report bugs and share ideas for this app"
                         rows={3}
                         {...field}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="settings.appUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>App URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="settings.supportUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Support URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/help" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -141,8 +188,8 @@ export function CreateBoardDialog({
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <FormLabel>Public board</FormLabel>
-                      <FormDescription>Anyone can view and submit feedback</FormDescription>
+                      <FormLabel>Public app</FormLabel>
+                      <FormDescription>Anyone can view and submit reports</FormDescription>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -157,7 +204,7 @@ export function CreateBoardDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? 'Creating...' : 'Create board'}
+                {mutation.isPending ? 'Creating...' : 'Create app'}
               </Button>
             </DialogFooter>
           </form>

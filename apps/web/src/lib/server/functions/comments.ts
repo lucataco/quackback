@@ -75,11 +75,15 @@ export const createCommentFn = createServerFn({ method: 'POST' })
     console.log(`[fn:comments] createCommentFn: postId=${data.postId}`)
     try {
       const auth = await requireAuth({ roles: ['admin', 'member', 'user'] })
+      const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
+      const config = await getPortalConfig()
+
+      if (!config.features.comments) {
+        throw new Error('Commenting is not enabled')
+      }
 
       // Block anonymous users unless anonymousCommenting is enabled
       if (auth.principal.type === 'anonymous') {
-        const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
-        const config = await getPortalConfig()
         if (!config.features.anonymousCommenting) {
           throw new Error('Anonymous commenting is not enabled')
         }

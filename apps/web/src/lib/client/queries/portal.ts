@@ -33,6 +33,7 @@ export const portalQueries = {
     minVotes?: number
     dateFrom?: string
     responded?: RespondedFilter
+    reportType?: 'bug' | 'idea'
   }) =>
     queryOptions({
       queryKey: [
@@ -47,6 +48,7 @@ export const portalQueries = {
         params.minVotes,
         params.dateFrom,
         params.responded,
+        params.reportType,
       ],
       queryFn: async () => {
         const data = await fetchPortalData({ data: params })

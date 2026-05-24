@@ -213,6 +213,7 @@ export async function listInboxPosts(params: InboxPostListParams): Promise<Inbox
       mergedAt: true,
       summaryJson: true,
       summaryUpdatedAt: true,
+      widgetMetadata: true,
     },
     where: whereClause,
     orderBy: orderByMap[sort],
@@ -247,6 +248,10 @@ export async function listInboxPosts(params: InboxPostListParams): Promise<Inbox
     tags: post.tags.map((pt) => pt.tag),
     commentCount: post.commentCount,
     authorName: post.author?.displayName ?? null,
+    reportType:
+      post.widgetMetadata?.reportType === 'bug' || post.widgetMetadata?.reportType === 'idea'
+        ? post.widgetMetadata.reportType
+        : null,
   })) as unknown as PostListItem[]
 
   const lastItem = items[items.length - 1]

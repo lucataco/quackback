@@ -5,7 +5,7 @@ import { useKeyboardSubmit } from '@/lib/client/hooks/use-keyboard-submit'
 import { useRouter, useRouteContext } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PencilIcon } from '@heroicons/react/24/solid'
+import { BugAntIcon, LightBulbIcon, PencilIcon } from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -55,6 +55,7 @@ export function FeedbackHeaderAnimated({
   const createPost = useCreatePublicPost()
   const ensureAnonSession = useEnsureAnonSession()
   const anonymousPostingEnabled = settings?.publicPortalConfig?.features?.anonymousPosting ?? false
+  const submissionsEnabled = settings?.publicPortalConfig?.features?.submissions ?? true
   const richMediaEnabled = settings?.publicPortalConfig?.features?.richMediaInPosts ?? true
 
   // Identified users post as themselves; anonymous posting is handled separately.
@@ -64,7 +65,7 @@ export function FeedbackHeaderAnimated({
       ? { name: session.user.name, email: session.user.email }
       : user
   const canPostAnonymously = anonymousPostingEnabled && (!session?.user || isAnonymousSession)
-  const canSubmit = !!effectiveUser || anonymousPostingEnabled
+  const canSubmit = submissionsEnabled && (!!effectiveUser || anonymousPostingEnabled)
   const canUploadImages = !isAnonymousSession && !!session?.user && richMediaEnabled
 
   const { upload: uploadImage } = usePortalImageUpload()
@@ -88,6 +89,10 @@ export function FeedbackHeaderAnimated({
   }, [defaultBoardId])
 
   const [title, setTitle] = useState('')
+  const [reportType, setReportType] = useState<'bug' | 'idea'>('bug')
+  const [affectedUrl, setAffectedUrl] = useState('')
+  const [browser, setBrowser] = useState('')
+  const [environment, setEnvironment] = useState('')
   const [contentJson, setContentJson] = useState<JSONContent | null>(null)
   const [contentMarkdown, setContentMarkdown] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -140,6 +145,16 @@ export function FeedbackHeaderAnimated({
       return
     }
 
+    if (!submissionsEnabled) {
+      setError(
+        intl.formatMessage({
+          id: 'portal.feedback.header.errorSubmissionsDisabled',
+          defaultMessage: 'Submissions are not enabled',
+        })
+      )
+      return
+    }
+
     if (!effectiveUser && !anonymousPostingEnabled) {
       setError(
         intl.formatMessage({
@@ -169,6 +184,12 @@ export function FeedbackHeaderAnimated({
         title: title.trim(),
         content: contentMarkdown,
         contentJson,
+        metadata: {
+          reportType,
+          ...(affectedUrl.trim() && { affectedUrl: affectedUrl.trim() }),
+          ...(browser.trim() && { browser: browser.trim() }),
+          ...(environment.trim() && { environment: environment.trim() }),
+        },
       })
 
       resetForm()
@@ -205,6 +226,10 @@ export function FeedbackHeaderAnimated({
   function resetForm() {
     setSelectedBoardId(defaultBoardId || '')
     setTitle('')
+    setReportType('bug')
+    setAffectedUrl('')
+    setBrowser('')
+    setEnvironment('')
     setContentJson(null)
     setContentMarkdown('')
     setError('')
@@ -229,7 +254,7 @@ export function FeedbackHeaderAnimated({
       transition={{ duration: 0.2 }}
       onKeyDown={handleKeyDown}
     >
-      {/* Board selector - above title when expanded */}
+      {/* App selector - above title when expanded */}
       <AnimatePresence>
         {expanded && boards.length > 0 && (
           <motion.div
@@ -254,7 +279,7 @@ export function FeedbackHeaderAnimated({
                   <SelectValue
                     placeholder={intl.formatMessage({
                       id: 'portal.feedback.header.selectBoard',
-                      defaultMessage: 'Select a board',
+                      defaultMessage: 'Select an app',
                     })}
                   />
                 </SelectTrigger>
@@ -294,7 +319,7 @@ export function FeedbackHeaderAnimated({
           type="text"
           placeholder={intl.formatMessage({
             id: 'portal.feedback.header.titlePlaceholder',
-            defaultMessage: "What's your idea?",
+            defaultMessage: 'Report a bug or share an idea',
           })}
           value={title}
           onChange={(e) => {
@@ -338,6 +363,75 @@ export function FeedbackHeaderAnimated({
               )}
             </AnimatePresence>
 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="px-4 sm:px-5 pb-3 space-y-3"
+            >
+              <div className="inline-flex rounded-lg border border-border/60 bg-muted/30 p-1">
+                <button
+                  type="button"
+                  onClick={() => setReportType('bug')}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    reportType === 'bug'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <BugAntIcon className="h-4 w-4" />
+                  <FormattedMessage id="portal.feedback.header.typeBug" defaultMessage="Bug" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportType('idea')}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    reportType === 'idea'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <LightBulbIcon className="h-4 w-4" />
+                  <FormattedMessage id="portal.feedback.header.typeIdea" defaultMessage="Idea" />
+                </button>
+              </div>
+
+              {reportType === 'bug' && (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <input
+                    type="url"
+                    value={affectedUrl}
+                    onChange={(e) => setAffectedUrl(e.target.value)}
+                    placeholder={intl.formatMessage({
+                      id: 'portal.feedback.header.affectedUrl',
+                      defaultMessage: 'Affected URL',
+                    })}
+                    className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    type="text"
+                    value={browser}
+                    onChange={(e) => setBrowser(e.target.value)}
+                    placeholder={intl.formatMessage({
+                      id: 'portal.feedback.header.browser',
+                      defaultMessage: 'Browser',
+                    })}
+                    className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    type="text"
+                    value={environment}
+                    onChange={(e) => setEnvironment(e.target.value)}
+                    placeholder={intl.formatMessage({
+                      id: 'portal.feedback.header.environment',
+                      defaultMessage: 'OS / device',
+                    })}
+                    className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                </div>
+              )}
+            </motion.div>
+
             {/* Rich text editor */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -348,10 +442,19 @@ export function FeedbackHeaderAnimated({
               <RichTextEditor
                 value={contentJson || ''}
                 onChange={handleContentChange}
-                placeholder={intl.formatMessage({
-                  id: 'portal.feedback.header.detailsPlaceholder',
-                  defaultMessage: 'Add more details...',
-                })}
+                placeholder={
+                  reportType === 'bug'
+                    ? intl.formatMessage({
+                        id: 'portal.feedback.header.bugDetailsPlaceholder',
+                        defaultMessage:
+                          'What happened? Add steps, expected behavior, and screenshots if helpful...',
+                      })
+                    : intl.formatMessage({
+                        id: 'portal.feedback.header.ideaDetailsPlaceholder',
+                        defaultMessage:
+                          'Describe the idea, use case, or problem you want solved...',
+                      })
+                }
                 minHeight="150px"
                 borderless
                 features={{ images: canUploadImages }}

@@ -47,6 +47,12 @@ interface CreatePostInput {
   title: string
   content: string
   contentJson: unknown
+  metadata?: {
+    reportType?: 'bug' | 'idea'
+    affectedUrl?: string
+    browser?: string
+    environment?: string
+  }
 }
 
 interface UserEditPostInput {
@@ -196,13 +202,14 @@ export function useCreatePublicPost() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ boardId, title, content, contentJson }: CreatePostInput) =>
+    mutationFn: ({ boardId, title, content, contentJson, metadata }: CreatePostInput) =>
       createPublicPostFn({
         data: {
           boardId,
           title,
           content,
           contentJson: contentJson as { type: 'doc'; content?: unknown[] },
+          metadata,
         },
       }),
     onSuccess: (newPost) => {
@@ -226,6 +233,7 @@ export function useCreatePublicPost() {
             commentCount: 0,
             tags: [],
             board: { ...newPost.board, id: newPost.board.id as BoardId },
+            reportType: newPost.reportType,
           }
 
           return {

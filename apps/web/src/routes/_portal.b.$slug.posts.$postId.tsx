@@ -241,6 +241,8 @@ function PostDetailPage() {
               postId={postId}
               voteCount={post.voteCount}
               status={currentStatus}
+              reportType={post.reportType}
+              widgetMetadata={post.widgetMetadata}
               board={board}
               authorName={post.authorName}
               authorAvatarUrl={post.authorAvatarUrl}

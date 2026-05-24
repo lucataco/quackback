@@ -55,6 +55,7 @@ const fetchPortalDataSchema = z.object({
     .refine((s) => !Number.isNaN(new Date(s).getTime()), 'Invalid calendar date')
     .optional(),
   responded: z.enum(['responded', 'unresponded']).optional(),
+  reportType: z.enum(['bug', 'idea']).optional(),
 })
 
 export const getPrincipalIdForUser = createServerFn({ method: 'GET' })
@@ -100,6 +101,7 @@ export const fetchPortalData = createServerFn({ method: 'GET' })
           minVotes: data.minVotes,
           dateFrom: data.dateFrom,
           responded: data.responded,
+          reportType: data.reportType,
         }),
         listPublicStatuses(),
         listPublicTags(),
@@ -127,6 +129,7 @@ export const fetchPortalData = createServerFn({ method: 'GET' })
         commentCount: post.commentCount,
         tags: post.tags,
         board: post.board,
+        reportType: post.reportType,
       })),
       hasMore: postsResult.hasMore,
       total: -1,
@@ -429,10 +432,11 @@ export const getCommentsSectionDataFn = createServerFn({ method: 'GET' }).handle
 
     // Anonymous users can only comment if the setting is enabled
     let canComment = isMember
+    const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
+    const config = await getPortalConfig()
+    canComment = config.features.comments && canComment
     if (isMember && ctx.principal.type === 'anonymous') {
-      const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
-      const config = await getPortalConfig()
-      canComment = config.features.anonymousCommenting
+      canComment = config.features.comments && config.features.anonymousCommenting
     }
 
     return {

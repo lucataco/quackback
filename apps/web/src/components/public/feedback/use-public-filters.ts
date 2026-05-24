@@ -40,6 +40,7 @@ export function usePublicFilters() {
     (lastRouterSearchRef.current.board !== routerSearch.board ||
       lastRouterSearchRef.current.sort !== routerSearch.sort ||
       lastRouterSearchRef.current.search !== routerSearch.search ||
+      lastRouterSearchRef.current.reportType !== routerSearch.reportType ||
       lastRouterSearchRef.current.minVotes !== routerSearch.minVotes ||
       lastRouterSearchRef.current.dateFrom !== routerSearch.dateFrom ||
       lastRouterSearchRef.current.responded !== routerSearch.responded ||
@@ -56,6 +57,7 @@ export function usePublicFilters() {
       board: routerSearch.board,
       search: routerSearch.search,
       sort: routerSearch.sort,
+      reportType: routerSearch.reportType,
       status: routerSearch.status?.length ? routerSearch.status : undefined,
       tagIds: routerSearch.tagIds?.length ? routerSearch.tagIds : undefined,
       minVotes: routerSearch.minVotes,
@@ -75,6 +77,7 @@ export function usePublicFilters() {
           board: newFilters.board,
           search: newFilters.search,
           sort: newFilters.sort,
+          reportType: newFilters.reportType,
           status: newFilters.status,
           tagIds: newFilters.tagIds,
           minVotes: newFilters.minVotes,
@@ -92,6 +95,7 @@ export function usePublicFilters() {
     // which have their own dedicated UI affordances.
     setFilters({
       status: undefined,
+      reportType: undefined,
       tagIds: undefined,
       minVotes: undefined,
       dateFrom: undefined,
@@ -102,12 +106,20 @@ export function usePublicFilters() {
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (filters.status?.length) count += filters.status.length
+    if (filters.reportType) count += 1
     if (filters.tagIds?.length) count += filters.tagIds.length
     if (filters.minVotes) count += 1
     if (filters.dateFrom) count += 1
     if (filters.responded) count += 1
     return count
-  }, [filters.status, filters.tagIds, filters.minVotes, filters.dateFrom, filters.responded])
+  }, [
+    filters.status,
+    filters.reportType,
+    filters.tagIds,
+    filters.minVotes,
+    filters.dateFrom,
+    filters.responded,
+  ])
 
   const hasActiveFilters = activeFilterCount > 0
 

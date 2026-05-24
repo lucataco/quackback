@@ -22,6 +22,7 @@ import {
   type BoardTab,
 } from '@/components/admin/settings/boards/use-board-selection'
 import type { BoardId } from '@quackback/ids'
+import type { BoardSettings } from '@/lib/shared/db-types'
 
 /** Board data as returned from server functions (dates serialized as strings) */
 interface BoardForSettings {
@@ -30,6 +31,7 @@ interface BoardForSettings {
   slug: string
   description: string | null
   isPublic: boolean
+  settings?: BoardSettings
 }
 
 const searchSchema = z.object({
@@ -98,7 +100,7 @@ function BoardTabContent({ board, tab }: BoardTabContentProps): ReactNode {
     case 'general':
       return (
         <div className="space-y-8">
-          <SettingsCard title="Board Details">
+          <SettingsCard title="App Details">
             <BoardGeneralForm board={board} />
           </SettingsCard>
 
@@ -149,14 +151,14 @@ function EmptyBoardsState() {
       <PageHeader
         icon={Squares2X2Icon}
         title="Board Settings"
-        description="Configure your feedback board settings and preferences"
+        description="Configure your app/topic settings and preferences"
       />
 
       <div className="rounded-xl border border-border/50 bg-card p-8 shadow-sm">
         <EmptyState
           icon={ChatBubbleLeftIcon}
           title="No boards yet"
-          description="Create your first feedback board to start collecting ideas from your users"
+          description="Create your first app/topic to start collecting bugs and ideas from your users"
           action={<CreateBoardDialog />}
           className="py-8"
         />

@@ -100,6 +100,7 @@ async function fetchPublicPosts(
       minVotes: filters.minVotes,
       dateFrom: filters.dateFrom,
       responded: filters.responded,
+      reportType: filters.reportType,
     },
   })) as unknown as PublicPostListResult
 }

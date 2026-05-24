@@ -26,6 +26,7 @@ describe('usePublicFilters', () => {
   it('counts each new filter type once in activeFilterCount', () => {
     routerSearch = {
       status: ['open'],
+      reportType: 'bug',
       tagIds: ['tag_1', 'tag_2'],
       minVotes: 10,
       dateFrom: '2026-04-01',
@@ -33,17 +34,18 @@ describe('usePublicFilters', () => {
     }
     const { result } = renderHook(() => usePublicFilters())
 
-    // status (1) + tagIds (2) + minVotes (1) + dateFrom (1) + responded (1) = 6
-    expect(result.current.activeFilterCount).toBe(6)
+    // status (1) + reportType (1) + tagIds (2) + minVotes (1) + dateFrom (1) + responded (1) = 7
+    expect(result.current.activeFilterCount).toBe(7)
     expect(result.current.hasActiveFilters).toBe(true)
   })
 
-  it('clearFilters removes status, tags, minVotes, dateFrom, responded but preserves search/sort/board', () => {
+  it('clearFilters removes chip filters but preserves search/sort/board', () => {
     routerSearch = {
       board: 'feature-requests',
       search: 'login',
       sort: 'new',
       status: ['open'],
+      reportType: 'bug',
       tagIds: ['tag_1'],
       minVotes: 10,
       dateFrom: '2026-04-01',
@@ -63,6 +65,7 @@ describe('usePublicFilters', () => {
           sort: 'new',
           search: 'login',
           status: undefined,
+          reportType: undefined,
           tagIds: undefined,
           minVotes: undefined,
           dateFrom: undefined,

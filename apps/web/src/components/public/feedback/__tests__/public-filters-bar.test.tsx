@@ -68,9 +68,9 @@ describe('PublicFiltersBar', () => {
     expect(screen.getByRole('button', { name: /add filter/i })).toBeInTheDocument()
   })
 
-  it('renders a board chip when filters.board is set', () => {
+  it('renders an app chip when filters.board is set', () => {
     renderBar({ filters: { sort: 'top', board: 'bugs' } })
-    expect(screen.getByText(/^Board:$/)).toBeInTheDocument()
+    expect(screen.getByText(/^App:$/)).toBeInTheDocument()
     expect(screen.getByText('Bugs')).toBeInTheDocument()
   })
 
@@ -79,7 +79,13 @@ describe('PublicFiltersBar', () => {
       filters: { sort: 'top', board: 'bugs' },
       boards: [{ id: 'board_2', slug: 'bugs', name: 'Bugs' }],
     })
-    expect(screen.queryByText(/^Board:$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^App:$/)).not.toBeInTheDocument()
+  })
+
+  it('renders a report type chip when filters.reportType is set', () => {
+    renderBar({ filters: { sort: 'top', reportType: 'bug' } })
+    expect(screen.getByText(/^Type:$/)).toBeInTheDocument()
+    expect(screen.getByText('Bug')).toBeInTheDocument()
   })
 
   it('renders combined Tags chip when 3+ tags selected', () => {
@@ -151,7 +157,7 @@ describe('PublicFiltersToolbarButton', () => {
     expect(setFilters).toHaveBeenCalledWith({ minVotes: 25 })
   })
 
-  it('lets users pick a board from the filter menu', () => {
+  it('lets users pick an app from the filter menu', () => {
     const setFilters = vi.fn()
     render(
       <IntlProvider locale="en" defaultLocale="en">
@@ -165,13 +171,13 @@ describe('PublicFiltersToolbarButton', () => {
       </IntlProvider>
     )
     fireEvent.click(screen.getByRole('button', { name: /filter/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^Board$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^App$/i }))
     // cmdk's CommandItem renders with role="option"
     fireEvent.click(screen.getByRole('option', { name: 'Bugs' }))
     expect(setFilters).toHaveBeenCalledWith({ board: 'bugs' })
   })
 
-  it('hides the Board category when only a single board exists', () => {
+  it('hides the App category when only a single board exists', () => {
     const setFilters = vi.fn()
     render(
       <IntlProvider locale="en" defaultLocale="en">
@@ -185,7 +191,7 @@ describe('PublicFiltersToolbarButton', () => {
       </IntlProvider>
     )
     fireEvent.click(screen.getByRole('button', { name: /filter/i }))
-    expect(screen.queryByRole('button', { name: /^Board$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^App$/i })).not.toBeInTheDocument()
   })
 })
 

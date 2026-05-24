@@ -54,6 +54,8 @@ export interface PublicPostDetailView {
   content: string
   contentJson: unknown
   statusId: StatusId | null
+  reportType?: 'bug' | 'idea' | null
+  widgetMetadata?: Record<string, string> | null
   voteCount: number
   authorName: string | null
   principalId: PrincipalId | null

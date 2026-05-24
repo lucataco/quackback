@@ -38,6 +38,13 @@ export const Route = createFileRoute('/_portal')({
     const customCss = settings?.customCss ?? ''
     const portalConfig = settings?.publicPortalConfig ?? null
 
+    if (
+      portalConfig?.features?.publicView === false &&
+      (!session?.user || session.user.principalType === 'anonymous')
+    ) {
+      throw redirect({ to: '/auth/login' })
+    }
+
     const themeMode = brandingConfig.themeMode ?? 'user'
 
     // Always generate CSS from theme config (if structured vars exist)

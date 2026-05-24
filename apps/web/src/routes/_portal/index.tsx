@@ -14,6 +14,7 @@ const searchSchema = z.object({
   board: z.string().optional(),
   search: z.string().optional(),
   sort: z.enum(['top', 'new', 'trending']).optional().default('trending'),
+  reportType: z.enum(['bug', 'idea']).optional(),
   status: z.array(z.string()).optional(),
   tagIds: z.array(z.string()).optional(),
   minVotes: z.coerce.number().int().min(1).optional(),
@@ -55,6 +56,7 @@ export const Route = createFileRoute('/_portal/')({
         minVotes: searchParams.minVotes,
         dateFrom: searchParams.dateFrom,
         responded: searchParams.responded,
+        reportType: searchParams.reportType,
       })
     )
 
@@ -63,8 +65,11 @@ export const Route = createFileRoute('/_portal/')({
     queryClient.setQueryData(votedPostsKeys.byWorkspace(), new Set(portalData.votedPostIds))
 
     const anonymousVotingEnabled =
-      org.publicPortalConfig?.features?.anonymousVoting ??
-      DEFAULT_PORTAL_CONFIG.features.anonymousVoting
+      (org.publicPortalConfig?.features?.voting ?? DEFAULT_PORTAL_CONFIG.features.voting) &&
+      (org.publicPortalConfig?.features?.anonymousVoting ??
+        DEFAULT_PORTAL_CONFIG.features.anonymousVoting)
+    const votingEnabled =
+      org.publicPortalConfig?.features?.voting ?? DEFAULT_PORTAL_CONFIG.features.voting
 
     const welcomeCard = org.publicPortalConfig?.welcomeCard
 
@@ -74,6 +79,7 @@ export const Route = createFileRoute('/_portal/')({
       isEmpty: portalData.boards.length === 0,
       session,
       anonymousVotingEnabled,
+      votingEnabled,
       welcomeCard,
     }
   },
@@ -103,7 +109,7 @@ function PublicPortalPage() {
   const intl = useIntl()
   const loaderData = Route.useLoaderData()
   const search = Route.useSearch()
-  const { org, session, anonymousVotingEnabled, welcomeCard } = loaderData
+  const { org, session, anonymousVotingEnabled, votingEnabled, welcomeCard } = loaderData
 
   // Read filters directly from URL for instant updates
   const currentBoard = search.board
@@ -125,6 +131,7 @@ function PublicPortalPage() {
       minVotes: search.minVotes,
       dateFrom: search.dateFrom,
       responded: search.responded,
+      reportType: search.reportType,
     }),
     placeholderData: keepPreviousData,
   })
@@ -183,6 +190,7 @@ function PublicPortalPage() {
         defaultBoardId={portalData.boards[0]?.id}
         user={user}
         anonymousVotingEnabled={anonymousVotingEnabled}
+        votingEnabled={votingEnabled}
         welcomeCard={welcomeCard}
       />
     </div>

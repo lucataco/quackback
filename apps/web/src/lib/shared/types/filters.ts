@@ -41,6 +41,7 @@ export interface PublicFeedbackFilters {
   board?: string
   search?: string
   sort?: 'top' | 'new' | 'trending'
+  reportType?: 'bug' | 'idea'
   status?: string[]
   tagIds?: string[]
   minVotes?: number

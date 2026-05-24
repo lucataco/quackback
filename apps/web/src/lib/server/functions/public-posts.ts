@@ -56,6 +56,7 @@ const listPublicPostsSchema = z.object({
     .refine((s) => !Number.isNaN(new Date(s).getTime()), 'Invalid calendar date')
     .optional(),
   responded: z.enum(['responded', 'unresponded']).optional(),
+  reportType: z.enum(['bug', 'idea']).optional(),
 })
 
 const getPostPermissionsSchema = z.object({
@@ -82,7 +83,15 @@ const createPublicPostSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   content: z.string().max(10000).optional().default(''),
   contentJson: tiptapContentSchema.optional(),
-  metadata: z.record(z.string(), z.string()).optional(),
+  metadata: z
+    .object({
+      reportType: z.enum(['bug', 'idea']).optional(),
+      affectedUrl: z.string().max(500).optional(),
+      browser: z.string().max(120).optional(),
+      environment: z.string().max(120).optional(),
+    })
+    .catchall(z.string())
+    .optional(),
 })
 
 const getPublicRoadmapPostsSchema = z.object({
@@ -143,6 +152,7 @@ export const listPublicPostsFn = createServerFn({ method: 'GET' })
         minVotes: data.minVotes,
         dateFrom: data.dateFrom,
         responded: data.responded,
+        reportType: data.reportType,
       })
 
       console.log(`[fn:public-posts] listPublicPostsFn: count=${result.items.length}`)
@@ -298,11 +308,15 @@ export const toggleVoteFn = createServerFn({ method: 'POST' })
       console.log(`[fn:public-posts] toggleVoteFn: postId=${data.postId}`)
       try {
         const ctx = await requireAuth()
+        const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
+        const config = await getPortalConfig()
+
+        if (!config.features.voting) {
+          throw new Error('Voting is not enabled')
+        }
 
         // Block anonymous users unless anonymousVoting is enabled
         if (ctx.principal.type === 'anonymous') {
-          const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
-          const config = await getPortalConfig()
           if (!config.features.anonymousVoting) {
             throw new Error('Anonymous voting is not enabled')
           }
@@ -341,6 +355,12 @@ export const createPublicPostFn = createServerFn({ method: 'POST' })
       const ctx = await requireAuth()
       const { boardId: boardIdRaw, title, content, contentJson, metadata } = data
       const boardId = boardIdRaw as BoardId
+      const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
+      const portalConfig = await getPortalConfig()
+
+      if (!portalConfig.features.submissions) {
+        throw new Error('Submissions are not enabled')
+      }
 
       // Run all independent lookups in parallel (board, principal, defaultStatus, settings)
       const [board, principalRecord, defaultStatus, settings] = await Promise.all([
@@ -361,11 +381,7 @@ export const createPublicPostFn = createServerFn({ method: 'POST' })
 
       // Block anonymous users unless anonymousPosting is enabled
       if (ctx.principal.type === 'anonymous') {
-        const parsed =
-          typeof settings.portalConfig === 'string'
-            ? JSON.parse(settings.portalConfig)
-            : settings.portalConfig
-        if (!parsed?.features?.anonymousPosting) {
+        if (!portalConfig.features.anonymousPosting) {
           throw new Error('Anonymous posting is not enabled')
         }
       } else if (!principalRecord) {
@@ -388,7 +404,7 @@ export const createPublicPostFn = createServerFn({ method: 'POST' })
           content,
           contentJson: contentJson ? sanitizeTiptapContent(contentJson) : undefined,
           statusId: defaultStatus?.id,
-          widgetMetadata: metadata,
+          widgetMetadata: metadata as Record<string, string> | undefined,
         },
         author
       )
@@ -406,6 +422,7 @@ export const createPublicPostFn = createServerFn({ method: 'POST' })
           name: board.name,
           slug: board.slug,
         },
+        reportType: metadata?.reportType ?? null,
       }
     } catch (error) {
       console.error(`[fn:public-posts] ❌ createPublicPostFn failed:`, error)
@@ -563,7 +580,8 @@ export const getVoteSidebarDataFn = createServerFn({ method: 'GET' })
           typeof settings?.portalConfig === 'string'
             ? JSON.parse(settings.portalConfig)
             : settings?.portalConfig
-        const anonEnabled = parsed?.features?.anonymousVoting ?? true
+        const votingEnabled = parsed?.features?.voting ?? true
+        const anonEnabled = votingEnabled && (parsed?.features?.anonymousVoting ?? true)
         console.log(`[fn:public-posts] getVoteSidebarDataFn: no session, canVote=${anonEnabled}`)
         return {
           isMember: false,
@@ -583,15 +601,13 @@ export const getVoteSidebarDataFn = createServerFn({ method: 'GET' })
       const isAnonymous = ctx.principal.type === 'anonymous'
 
       // Re-check anonymousVoting setting for existing anonymous sessions
-      let canVote = true
-      if (isAnonymous) {
-        const settings = await getSettings()
-        const parsed =
-          typeof settings?.portalConfig === 'string'
-            ? JSON.parse(settings.portalConfig)
-            : settings?.portalConfig
-        canVote = parsed?.features?.anonymousVoting ?? true
-      }
+      const settings = await getSettings()
+      const parsed =
+        typeof settings?.portalConfig === 'string'
+          ? JSON.parse(settings.portalConfig)
+          : settings?.portalConfig
+      const votingEnabled = parsed?.features?.voting ?? true
+      const canVote = votingEnabled && (!isAnonymous || (parsed?.features?.anonymousVoting ?? true))
 
       const { hasVoted, subscription } = await getVoteAndSubscriptionStatus(
         postId,

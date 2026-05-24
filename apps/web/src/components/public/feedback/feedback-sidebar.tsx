@@ -21,7 +21,7 @@ export function FeedbackSidebar({
       <div className="sticky top-24">
         <div className="bg-card border border-border/50 rounded-lg shadow-sm overflow-hidden">
           <h2 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground px-4 pt-4 pb-3">
-            <FormattedMessage id="portal.feedback.sidebar.boards" defaultMessage="Boards" />
+            <FormattedMessage id="portal.feedback.sidebar.boards" defaultMessage="Apps" />
           </h2>
           <nav className="space-y-1 px-4 pb-4 max-h-[calc(100vh-16rem)] overflow-y-auto scrollbar-thin">
             {/* View all posts */}
@@ -62,6 +62,11 @@ export function FeedbackSidebar({
                   <ChatBubbleLeftIcon
                     className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')}
                   />
+                  {board.settings?.iconEmoji && (
+                    <span className="shrink-0 text-sm leading-none" aria-hidden="true">
+                      {board.settings.iconEmoji}
+                    </span>
+                  )}
                   <span className="truncate min-w-0">{board.name}</span>
                   {board.postCount > 0 && (
                     <span

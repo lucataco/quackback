@@ -29,6 +29,9 @@ export type NewBoard = InferInsertModel<typeof boards>
 // Board settings (stored in boards.settings JSONB column)
 export interface BoardSettings {
   roadmapStatusIds?: StatusId[] // Status IDs to show on roadmap
+  appUrl?: string
+  iconEmoji?: string
+  supportUrl?: string
 }
 
 // Integration config (stored in integrations.config JSONB column)

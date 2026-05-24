@@ -168,6 +168,16 @@ let createCommentHandler: AnyHandler
 beforeEach(async () => {
   vi.clearAllMocks()
   mockCheckAnonVoteRateLimit.mockResolvedValue(true)
+  mockGetPortalConfig.mockResolvedValue({
+    features: {
+      voting: true,
+      submissions: true,
+      comments: true,
+      anonymousVoting: false,
+      anonymousPosting: false,
+      anonymousCommenting: false,
+    },
+  })
 
   if (publicPostsHandlers.length === 0) {
     currentHandlerTarget = publicPostsHandlers
@@ -215,7 +225,14 @@ describe('toggleVoteFn anonymous feature flag', () => {
   it('allows anonymous vote when anonymousVoting is enabled', async () => {
     mockRequireAuth.mockResolvedValue(ANON_AUTH)
     mockGetPortalConfig.mockResolvedValue({
-      features: { anonymousVoting: true, anonymousPosting: false, anonymousCommenting: false },
+      features: {
+        voting: true,
+        submissions: true,
+        comments: true,
+        anonymousVoting: true,
+        anonymousPosting: false,
+        anonymousCommenting: false,
+      },
     })
     mockVoteOnPost.mockResolvedValue({ voted: true, voteCount: 5 })
 
@@ -228,7 +245,14 @@ describe('toggleVoteFn anonymous feature flag', () => {
   it('blocks anonymous vote when anonymousVoting is disabled', async () => {
     mockRequireAuth.mockResolvedValue(ANON_AUTH)
     mockGetPortalConfig.mockResolvedValue({
-      features: { anonymousVoting: false, anonymousPosting: false, anonymousCommenting: false },
+      features: {
+        voting: true,
+        submissions: true,
+        comments: true,
+        anonymousVoting: false,
+        anonymousPosting: false,
+        anonymousCommenting: false,
+      },
     })
 
     await expect(toggleVoteHandler({ data: { postId: 'post_123' } })).rejects.toThrow(
@@ -237,14 +261,14 @@ describe('toggleVoteFn anonymous feature flag', () => {
     expect(mockVoteOnPost).not.toHaveBeenCalled()
   })
 
-  it('allows non-anonymous users to vote regardless of feature flag', async () => {
+  it('allows non-anonymous users to vote when voting is enabled', async () => {
     mockRequireAuth.mockResolvedValue(USER_AUTH)
     mockVoteOnPost.mockResolvedValue({ voted: true, voteCount: 3 })
 
     const result = await toggleVoteHandler({ data: { postId: 'post_123' } })
 
     expect(result).toEqual({ voted: true, voteCount: 3 })
-    expect(mockGetPortalConfig).not.toHaveBeenCalled()
+    expect(mockGetPortalConfig).toHaveBeenCalled()
   })
 })
 
@@ -273,6 +297,18 @@ describe('createPublicPostFn anonymous feature flag', () => {
   }
 
   function setupPostMocks(portalConfig: Record<string, unknown>) {
+    const features = (portalConfig.features ?? {}) as Record<string, unknown>
+    mockGetPortalConfig.mockResolvedValue({
+      features: {
+        voting: true,
+        submissions: true,
+        comments: true,
+        anonymousVoting: false,
+        anonymousPosting: false,
+        anonymousCommenting: false,
+        ...features,
+      },
+    })
     mockGetPublicBoardById.mockResolvedValue(MOCK_BOARD)
     mockGetMemberByUser.mockResolvedValue(null)
     mockGetDefaultStatus.mockResolvedValue(MOCK_STATUS)
@@ -337,7 +373,14 @@ describe('createCommentFn anonymous feature flag', () => {
   it('allows anonymous comment when anonymousCommenting is enabled', async () => {
     mockRequireAuth.mockResolvedValue(ANON_AUTH)
     mockGetPortalConfig.mockResolvedValue({
-      features: { anonymousVoting: false, anonymousPosting: false, anonymousCommenting: true },
+      features: {
+        voting: true,
+        submissions: true,
+        comments: true,
+        anonymousVoting: false,
+        anonymousPosting: false,
+        anonymousCommenting: true,
+      },
     })
     mockCreateComment.mockResolvedValue({
       comment: { id: 'comment_new', content: 'Great idea!' },
@@ -352,7 +395,14 @@ describe('createCommentFn anonymous feature flag', () => {
   it('blocks anonymous comment when anonymousCommenting is disabled', async () => {
     mockRequireAuth.mockResolvedValue(ANON_AUTH)
     mockGetPortalConfig.mockResolvedValue({
-      features: { anonymousVoting: false, anonymousPosting: false, anonymousCommenting: false },
+      features: {
+        voting: true,
+        submissions: true,
+        comments: true,
+        anonymousVoting: false,
+        anonymousPosting: false,
+        anonymousCommenting: false,
+      },
     })
 
     await expect(createCommentHandler({ data: COMMENT_DATA })).rejects.toThrow(
@@ -361,7 +411,7 @@ describe('createCommentFn anonymous feature flag', () => {
     expect(mockCreateComment).not.toHaveBeenCalled()
   })
 
-  it('allows non-anonymous users to comment regardless of feature flag', async () => {
+  it('allows non-anonymous users to comment when commenting is enabled', async () => {
     mockRequireAuth.mockResolvedValue(USER_AUTH)
     mockCreateComment.mockResolvedValue({
       comment: { id: 'comment_new', content: 'Great idea!' },
@@ -370,6 +420,6 @@ describe('createCommentFn anonymous feature flag', () => {
     const result = await createCommentHandler({ data: COMMENT_DATA })
 
     expect(result).toHaveProperty('comment')
-    expect(mockGetPortalConfig).not.toHaveBeenCalled()
+    expect(mockGetPortalConfig).toHaveBeenCalled()
   })
 })

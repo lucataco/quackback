@@ -15,12 +15,14 @@ import {
 } from '@/components/ui/form'
 import { useUpdateBoard } from '@/lib/client/mutations'
 import type { BoardId } from '@quackback/ids'
+import type { BoardSettings } from '@/lib/shared/db-types'
 
 interface Board {
   id: BoardId
   name: string
   slug: string
   description: string | null
+  settings?: BoardSettings
 }
 
 interface BoardGeneralFormProps {
@@ -35,6 +37,11 @@ export function BoardGeneralForm({ board }: BoardGeneralFormProps) {
     defaultValues: {
       name: board.name,
       description: board.description || '',
+      settings: {
+        iconEmoji: board.settings?.iconEmoji || '',
+        appUrl: board.settings?.appUrl || '',
+        supportUrl: board.settings?.supportUrl || '',
+      },
     },
   })
 
@@ -43,6 +50,7 @@ export function BoardGeneralForm({ board }: BoardGeneralFormProps) {
       id: board.id,
       name: data.name,
       description: data.description,
+      settings: { ...board.settings, ...data.settings },
     })
   }
 
@@ -56,9 +64,23 @@ export function BoardGeneralForm({ board }: BoardGeneralFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Board name</FormLabel>
+              <FormLabel>App name</FormLabel>
               <FormControl>
                 <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="settings.iconEmoji"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Icon</FormLabel>
+              <FormControl>
+                <Input placeholder="🪲" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,6 +95,34 @@ export function BoardGeneralForm({ board }: BoardGeneralFormProps) {
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea rows={3} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="settings.appUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>App URL</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="settings.supportUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Support URL</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/help" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -17,7 +17,7 @@ import {
   principal as principalTable,
 } from '@/lib/server/db'
 import { toUuid, type PostId, type StatusId, type TagId, type PrincipalId } from '@quackback/ids'
-import type { PublicPostListResult } from './post.types'
+import type { PublicPostListResult, ReportType } from './post.types'
 import type { RespondedFilter } from '@/lib/shared/types/filters'
 
 import { getPublicUrlOrNull } from '@/lib/server/storage/s3'
@@ -50,6 +50,12 @@ export function parseAvatarData(json: string | null): string | null {
 
 type SortOrder = 'top' | 'new' | 'trending'
 
+function getReportType(metadata: Record<string, string> | null | undefined): ReportType | null {
+  return metadata?.reportType === 'bug' || metadata?.reportType === 'idea'
+    ? metadata.reportType
+    : null
+}
+
 function getPostSortOrder(sort: SortOrder) {
   switch (sort) {
     case 'new':
@@ -75,6 +81,7 @@ export interface PostWithVotesAndAvatars {
   board: { id: string; name: string; slug: string }
   hasVoted: boolean
   avatarUrl: string | null
+  reportType: ReportType | null
 }
 
 interface PostListParams {
@@ -89,6 +96,7 @@ interface PostListParams {
   minVotes?: number
   dateFrom?: string
   responded?: RespondedFilter
+  reportType?: ReportType
 }
 
 function buildPostFilterConditions(params: PostListParams) {
@@ -153,6 +161,10 @@ function buildPostFilterConditions(params: PostListParams) {
     )
   }
 
+  if (params.reportType) {
+    conditions.push(sql`${posts.widgetMetadata}->>'reportType' = ${params.reportType}`)
+  }
+
   return conditions
 }
 
@@ -209,6 +221,7 @@ export async function listPublicPostsWithVotesAndAvatars(
         FROM ${principalTable} m
         WHERE m.id = ${posts.principalId}
       )`.as('avatar_data'),
+      widgetMetadata: posts.widgetMetadata,
     })
     .from(posts)
     .innerJoin(boards, eq(posts.boardId, boards.id))
@@ -235,6 +248,7 @@ export async function listPublicPostsWithVotesAndAvatars(
       board: { id: post.boardId, name: post.boardName, slug: post.boardSlug },
       hasVoted: post.hasVoted ?? false,
       avatarUrl: parseAvatarData(post.avatarData),
+      reportType: getReportType(post.widgetMetadata),
     })
   )
 
@@ -271,6 +285,7 @@ export async function listPublicPosts(params: PostListParams): Promise<PublicPos
         SELECT m.display_name FROM ${principalTable} m
         WHERE m.id = ${posts.principalId}
       )`.as('author_name'),
+      widgetMetadata: posts.widgetMetadata,
     })
     .from(posts)
     .innerJoin(boards, eq(posts.boardId, boards.id))
@@ -294,6 +309,7 @@ export async function listPublicPosts(params: PostListParams): Promise<PublicPos
     commentCount: post.commentCount,
     tags: parseJson<Array<{ id: TagId; name: string; color: string }>>(post.tagsJson),
     board: { id: post.boardId, name: post.boardName, slug: post.boardSlug },
+    reportType: getReportType(post.widgetMetadata),
   }))
 
   return { items, total: -1, hasMore }

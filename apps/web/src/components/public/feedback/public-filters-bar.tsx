@@ -5,7 +5,9 @@ import {
   TagIcon,
   CalendarIcon,
   ArrowTrendingUpIcon,
+  BugAntIcon,
   ChatBubbleLeftRightIcon,
+  LightBulbIcon,
   PlusIcon,
   ChevronRightIcon,
   FunnelIcon,
@@ -42,19 +44,29 @@ interface FilterBarBoard {
   name: string
 }
 
-type FilterCategory = 'board' | 'status' | 'tag' | 'votes' | 'date' | 'response'
-type ChipType = 'board' | 'status' | 'tags' | 'votes' | 'date' | 'response'
+type FilterCategory = 'board' | 'reportType' | 'status' | 'tag' | 'votes' | 'date' | 'response'
+type ChipType = 'board' | 'reportType' | 'status' | 'tags' | 'votes' | 'date' | 'response'
 
 type IconComponent = React.ComponentType<{ className?: string }>
 
 const CHIP_ICON_BY_TYPE: Record<ChipType, IconComponent> = {
   board: Squares2X2Icon,
+  reportType: BugAntIcon,
   status: CircleIcon,
   tags: TagIcon,
   votes: ArrowTrendingUpIcon,
   date: CalendarIcon,
   response: ChatBubbleLeftRightIcon,
 }
+
+const REPORT_TYPE_OPTIONS: Array<{
+  id: 'bug' | 'idea'
+  label: string
+  icon: IconComponent
+}> = [
+  { id: 'bug', label: 'Bug', icon: BugAntIcon },
+  { id: 'idea', label: 'Idea', icon: LightBulbIcon },
+]
 
 interface PublicFiltersBarProps {
   filters: PublicFeedbackFilters
@@ -177,12 +189,20 @@ function AddFilterButton({
         key: 'board',
         label: intl.formatMessage({
           id: 'portal.feedback.filter.category.board',
-          defaultMessage: 'Board',
+          defaultMessage: 'App',
         }),
         icon: Squares2X2Icon,
       })
     }
     list.push(
+      {
+        key: 'reportType',
+        label: intl.formatMessage({
+          id: 'portal.feedback.filter.category.reportType',
+          defaultMessage: 'Type',
+        }),
+        icon: BugAntIcon,
+      },
       {
         key: 'status',
         label: intl.formatMessage({
@@ -309,7 +329,7 @@ function AddFilterButton({
             </button>
             <Command>
               {/* Hide the search input for short, fixed-preset lists where
-                  filtering adds no value (votes / date / response). */}
+                  filtering adds no value (type / votes / date / response). */}
               {(activeCategory === 'board' ||
                 activeCategory === 'status' ||
                 activeCategory === 'tag') && (
@@ -342,6 +362,27 @@ function AddFilterButton({
                         {board.name}
                       </CommandItem>
                     ))}
+                  </CommandGroup>
+                )}
+
+                {activeCategory === 'reportType' && (
+                  <CommandGroup>
+                    {REPORT_TYPE_OPTIONS.map((option) => {
+                      const Icon = option.icon
+                      return (
+                        <CommandItem
+                          key={option.id}
+                          value={option.label}
+                          onSelect={() => {
+                            setFilters({ reportType: option.id })
+                            closePopover()
+                          }}
+                        >
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                          {option.label}
+                        </CommandItem>
+                      )
+                    })}
                   </CommandGroup>
                 )}
 
@@ -487,7 +528,7 @@ function buildActiveChips(args: {
         type: 'board',
         label: intl.formatMessage({
           id: 'portal.feedback.filter.chip.board',
-          defaultMessage: 'Board:',
+          defaultMessage: 'App:',
         }),
         value: board.name,
         valueId: board.slug,
@@ -496,6 +537,23 @@ function buildActiveChips(args: {
         onRemove: () => setFilters({ board: undefined }),
       })
     }
+  }
+
+  if (filters.reportType) {
+    const matched = REPORT_TYPE_OPTIONS.find((option) => option.id === filters.reportType)
+    chips.push({
+      key: `reportType-${filters.reportType}`,
+      type: 'reportType',
+      label: intl.formatMessage({
+        id: 'portal.feedback.filter.chip.reportType',
+        defaultMessage: 'Type:',
+      }),
+      value: matched?.label ?? filters.reportType,
+      valueId: filters.reportType,
+      options: REPORT_TYPE_OPTIONS.map((option) => ({ id: option.id, label: option.label })),
+      onChange: (newType) => setFilters({ reportType: newType as 'bug' | 'idea' }),
+      onRemove: () => setFilters({ reportType: undefined }),
+    })
   }
 
   const statusOptions: FilterOption[] = statuses.map((s) => ({
