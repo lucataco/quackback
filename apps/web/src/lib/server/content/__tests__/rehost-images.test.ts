@@ -8,6 +8,7 @@ vi.mock('@/lib/server/content/ssrf-guard', async (importOriginal) => {
   return {
     ...actual,
     checkUrlSafety: vi.fn(),
+    safeFetch: vi.fn((url: string) => fetchMock(url)),
   }
 })
 
@@ -21,10 +22,10 @@ const fetchMock = vi.fn()
 vi.stubGlobal('fetch', fetchMock)
 
 import { rehostExternalImages } from '../rehost-images'
-import { checkUrlSafety } from '@/lib/server/content/ssrf-guard'
+import { safeFetch, SsrfError } from '@/lib/server/content/ssrf-guard'
 import { isS3Configured, uploadImageBuffer } from '@/lib/server/storage/s3'
 
-const checkUrlSafetyMock = checkUrlSafety as unknown as ReturnType<typeof vi.fn>
+const safeFetchMock = safeFetch as unknown as ReturnType<typeof vi.fn>
 const isS3ConfiguredMock = isS3Configured as unknown as ReturnType<typeof vi.fn>
 const uploadImageBufferMock = uploadImageBuffer as unknown as ReturnType<typeof vi.fn>
 
@@ -78,10 +79,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubGlobal('fetch', fetchMock)
   isS3ConfiguredMock.mockReturnValue(true)
+  safeFetchMock.mockImplementation((url: string) => fetchMock(url))
   uploadImageBufferMock.mockImplementation(async (_buf, _mime, prefix) => ({
     url: `https://cdn.example.com/${prefix}/rehosted-${Math.random().toString(36).slice(2, 8)}.png`,
   }))
-  checkUrlSafetyMock.mockResolvedValue({ safe: true, address: '93.184.216.34', family: 4 })
 })
 
 // ---- Tests ----
@@ -345,7 +346,7 @@ describe('rehostExternalImages — rejections (fail-soft)', () => {
   })
 
   it('rejects schemes other than http/https', async () => {
-    checkUrlSafetyMock.mockResolvedValueOnce({ safe: false, reason: 'scheme-rejected' })
+    safeFetchMock.mockRejectedValueOnce(new SsrfError('scheme-rejected'))
 
     const input = docWithImages('file:///etc/passwd')
     const output = await rehostExternalImages(input, { contentType: 'post' })
@@ -355,7 +356,7 @@ describe('rehostExternalImages — rejections (fail-soft)', () => {
   })
 
   it('rejects SSRF targets (private IP, cloud metadata, loopback)', async () => {
-    checkUrlSafetyMock.mockResolvedValueOnce({ safe: false, reason: 'ssrf-rejected' })
+    safeFetchMock.mockRejectedValueOnce(new SsrfError('ssrf-rejected'))
 
     const input = docWithImages('https://attacker.example.com/img.png')
     const output = await rehostExternalImages(input, { contentType: 'post' })

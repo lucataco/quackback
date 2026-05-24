@@ -38,6 +38,8 @@ docker compose logs -f
 
 Open http://localhost:3000 to access Quackback.
 
+> Deploying with Coolify or exposing a home server to the internet? Read the [Coolify checklist](../coolify/README.md) before going public.
+
 ### Using Docker Run
 
 ```bash

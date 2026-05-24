@@ -118,6 +118,14 @@ const portalUserByIdSchema = z.object({
   principalId: z.string(),
 })
 
+const checkOnboardingStateSchema = z.union([
+  z.string().optional(),
+  z.object({
+    userId: z.string().optional(),
+    bootstrapToken: z.string().optional(),
+  }),
+])
+
 /**
  * Fetch inbox posts with filters for admin feedback view
  */
@@ -548,9 +556,10 @@ export const getPublicAuthConfig = createServerFn({ method: 'GET' }).handler(asy
   const { getTenantSettings } = await import('@/lib/server/domains/settings/settings.service')
   const { getTierLimits } = await import('@/lib/server/domains/settings/tier-limits.service')
   const { isSsoActuallyRegistered } = await import('@/lib/server/auth/sso-secret')
+  const { config } = await import('@/lib/server/config')
   const [tenant, tierLimits] = await Promise.all([getTenantSettings(), getTierLimits()])
   const ssoEnabled = await isSsoActuallyRegistered(tenant?.authConfig?.ssoOidc, tierLimits)
-  return { ssoEnabled }
+  return { ssoEnabled, bootstrapTokenRequired: !!config.bootstrapToken }
 })
 
 /**
@@ -559,12 +568,13 @@ export const getPublicAuthConfig = createServerFn({ method: 'GET' }).handler(asy
  * Note: This function is called during onboarding and may create member records
  */
 export const checkOnboardingState = createServerFn({ method: 'GET' })
-  .inputValidator(z.string().optional())
+  .inputValidator(checkOnboardingStateSchema)
   .handler(async ({ data }) => {
     console.log(`[fn:admin] checkOnboardingState`)
     try {
       // Allow unauthenticated access for onboarding
-      const userId = data
+      const userId = typeof data === 'string' ? data : data?.userId
+      const bootstrapToken = typeof data === 'object' ? data.bootstrapToken : undefined
 
       if (!userId) {
         console.log(`[fn:admin] checkOnboardingState: no userId`)
@@ -593,6 +603,18 @@ export const checkOnboardingState = createServerFn({ method: 'GET' })
           return {
             principalRecord: null,
             needsInvitation: true,
+            hasSettings: false,
+            setupState: null,
+            isOnboardingComplete: false,
+          }
+        }
+
+        const { config } = await import('@/lib/server/config')
+        if (config.bootstrapToken && bootstrapToken !== config.bootstrapToken) {
+          console.log(`[fn:admin] checkOnboardingState: needsBootstrapToken=true`)
+          return {
+            principalRecord: null,
+            needsBootstrapToken: true,
             hasSettings: false,
             setupState: null,
             isOnboardingComplete: false,

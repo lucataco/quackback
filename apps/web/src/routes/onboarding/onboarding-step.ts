@@ -2,6 +2,7 @@ import type { SetupState } from '@/lib/shared/db-types'
 
 interface OnboardingStateInput {
   needsInvitation?: boolean
+  needsBootstrapToken?: boolean
   setupState: SetupState | null
   principalRecord: { id: string; role: string } | null
 }
@@ -26,6 +27,7 @@ export function pickOnboardingStep({ session, state }: PickStepInput): Onboardin
   if (!state) return '/onboarding/usecase'
 
   if (state.needsInvitation) return '/auth/login'
+  if (state.needsBootstrapToken) return '/onboarding/account'
 
   // Route to the FIRST incomplete step in wizard order. Whatever the
   // orchestrator (or self-hosted operator) hasn't already stamped on

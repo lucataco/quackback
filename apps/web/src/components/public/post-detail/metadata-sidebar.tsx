@@ -37,6 +37,7 @@ import { AuthSubscriptionBell } from '@/components/public/auth-subscription-bell
 import { VotersAvatarStack } from '@/components/admin/feedback/voters-avatar-stack'
 import { SOURCE_TYPE_LABELS, SourceTypeIcon } from '@/components/admin/feedback/source-type-icon'
 import { cn, getInitials } from '@/lib/shared/utils'
+import { sanitizeUrl } from '@/lib/shared/utils/sanitize'
 import type { PostStatusEntity } from '@/lib/shared/db-types'
 import type { PostId, StatusId, TagId, RoadmapId, BoardId } from '@quackback/ids'
 
@@ -358,6 +359,9 @@ export function MetadataSidebar({
   const availableRoadmaps = allRoadmaps.filter((r) => !currentRoadmapIds.includes(r.id))
   const ReportTypeIcon = reportType === 'bug' ? BugAntIcon : LightBulbIcon
   const reportTypeLabel = reportType === 'bug' ? 'Bug' : reportType === 'idea' ? 'Idea' : null
+  const affectedUrl = widgetMetadata?.affectedUrl ? sanitizeUrl(widgetMetadata.affectedUrl) : ''
+  const safeAffectedUrl =
+    affectedUrl.startsWith('http://') || affectedUrl.startsWith('https://') ? affectedUrl : ''
 
   // Handlers for admin mode
   async function handleTagToggle(tagId: TagId) {
@@ -511,9 +515,7 @@ export function MetadataSidebar({
           </div>
         )}
 
-        {(widgetMetadata?.affectedUrl ||
-          widgetMetadata?.browser ||
-          widgetMetadata?.environment) && (
+        {(safeAffectedUrl || widgetMetadata?.browser || widgetMetadata?.environment) && (
           <div className="space-y-2 border-t border-border/30 pt-4">
             <p className="text-sm font-medium text-foreground">
               <FormattedMessage
@@ -521,20 +523,20 @@ export function MetadataSidebar({
                 defaultMessage="Report details"
               />
             </p>
-            {widgetMetadata.affectedUrl && (
+            {safeAffectedUrl && (
               <div className="flex items-start justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">URL</span>
                 <a
-                  href={widgetMetadata.affectedUrl}
+                  href={safeAffectedUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="max-w-[65%] truncate text-primary hover:underline"
                 >
-                  {widgetMetadata.affectedUrl}
+                  {safeAffectedUrl}
                 </a>
               </div>
             )}
-            {widgetMetadata.browser && (
+            {widgetMetadata?.browser && (
               <div className="flex items-start justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">Browser</span>
                 <span className="max-w-[65%] text-end text-foreground">
@@ -542,7 +544,7 @@ export function MetadataSidebar({
                 </span>
               </div>
             )}
-            {widgetMetadata.environment && (
+            {widgetMetadata?.environment && (
               <div className="flex items-start justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">Device</span>
                 <span className="max-w-[65%] text-end text-foreground">

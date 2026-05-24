@@ -72,6 +72,7 @@ const configSchema = z.object({
 
   // Auth
   secretKey: z.string().min(32, 'SECRET_KEY must be at least 32 characters'),
+  bootstrapToken: z.string().min(12).optional(),
 
   // Redis (BullMQ background jobs)
   redisUrl: z.string().min(1),
@@ -124,6 +125,7 @@ function buildConfigFromEnv(): unknown {
 
     // Auth
     secretKey: process.env.SECRET_KEY,
+    bootstrapToken: env('BOOTSTRAP_TOKEN'),
 
     // Redis
     redisUrl: process.env.REDIS_URL,
@@ -216,6 +218,9 @@ export const config = {
   },
   get secretKey() {
     return loadConfig().secretKey
+  },
+  get bootstrapToken() {
+    return loadConfig().bootstrapToken
   },
 
   // Redis

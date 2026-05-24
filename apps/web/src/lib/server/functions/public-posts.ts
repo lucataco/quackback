@@ -86,7 +86,14 @@ const createPublicPostSchema = z.object({
   metadata: z
     .object({
       reportType: z.enum(['bug', 'idea']).optional(),
-      affectedUrl: z.string().max(500).optional(),
+      affectedUrl: z
+        .string()
+        .max(500)
+        .url()
+        .refine((value) => ['http:', 'https:'].includes(new URL(value).protocol), {
+          message: 'Affected URL must use http or https',
+        })
+        .optional(),
       browser: z.string().max(120).optional(),
       environment: z.string().max(120).optional(),
     })

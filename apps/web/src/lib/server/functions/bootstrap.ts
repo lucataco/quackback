@@ -109,13 +109,17 @@ async function getSessionAndRole(): Promise<{
 let _initialized = false
 
 const getBootstrapDataInternal = createServerOnlyFn(async (): Promise<BootstrapData> => {
-  const [{ getTenantSettings }, { getRegisteredAuthProviders }, { config }, { getRequestHeaders }] =
-    await Promise.all([
-      import('@/lib/server/domains/settings/settings.service'),
-      import('@/lib/server/auth/registered-providers'),
-      import('@/lib/server/config'),
-      import('@tanstack/react-start/server'),
-    ])
+  const [
+    { getTenantSettings },
+    { getRegisteredAuthProviders },
+    { config },
+    { getRequestHeaders, setResponseHeader },
+  ] = await Promise.all([
+    import('@/lib/server/domains/settings/settings.service'),
+    import('@/lib/server/auth/registered-providers'),
+    import('@/lib/server/config'),
+    import('@tanstack/react-start/server'),
+  ])
 
   // Single principal read returns both session.principalType + userRole;
   // run in parallel with the settings fetch.
@@ -141,6 +145,12 @@ const getBootstrapDataInternal = createServerOnlyFn(async (): Promise<BootstrapD
   }
 
   const headers = getRequestHeaders()
+  setResponseHeader('X-Content-Type-Options', 'nosniff')
+  setResponseHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  setResponseHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  if (config.baseUrl.startsWith('https://')) {
+    setResponseHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  }
   const themeCookie = getThemeCookie(headers.get('cookie') ?? null)
 
   return {

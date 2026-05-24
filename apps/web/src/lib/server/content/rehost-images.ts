@@ -17,7 +17,7 @@
 
 import type { TiptapContent } from '@/lib/server/db'
 import { isS3Configured, uploadImageBuffer } from '@/lib/server/storage/s3'
-import { checkUrlSafety } from './ssrf-guard'
+import { safeFetch, SsrfError } from './ssrf-guard'
 import { sniffImageMime, ALLOWED_REHOST_MIMES } from './magic-bytes'
 
 const MAX_BYTES = Number(process.env.REHOST_MAX_BYTES) || 10 * 1024 * 1024
@@ -141,67 +141,45 @@ function isSameOrigin(src: string): boolean {
 async function fetchWithLimits(
   url: string
 ): Promise<{ ok: true; buffer: Buffer; mimeHeader: string } | { ok: false; reason: RejectReason }> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-  let response: Response
   try {
-    response = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'manual',
+    const response = await safeFetch(url, {
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxResponseBytes: MAX_BYTES,
     })
-  } catch (err) {
-    clearTimeout(timer)
-    const reason = (err as Error).name === 'AbortError' ? 'fetch-timeout' : 'fetch-error'
-    return { ok: false, reason }
-  }
-  clearTimeout(timer)
 
-  if (response.status >= 300 && response.status < 400) {
-    return { ok: false, reason: 'redirect-rejected' }
-  }
-  if (!response.ok) {
-    return { ok: false, reason: 'fetch-error' }
-  }
-
-  const mimeHeader = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
-  if (mimeHeader === 'image/svg+xml') {
-    return { ok: false, reason: 'svg-rejected' }
-  }
-  if (!ALLOWED_REHOST_MIMES.has(mimeHeader)) {
-    return { ok: false, reason: 'mime-rejected' }
-  }
-
-  const declaredLength = response.headers.get('content-length')
-  if (declaredLength !== null && Number(declaredLength) > MAX_BYTES) {
-    return { ok: false, reason: 'oversized' }
-  }
-
-  // Stream-limited read: abort if the body overruns the cap.
-  if (!response.body) {
-    return { ok: false, reason: 'fetch-error' }
-  }
-  const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
-  let total = 0
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      if (value) {
-        total += value.byteLength
-        if (total > MAX_BYTES) {
-          await reader.cancel()
-          return { ok: false, reason: 'oversized' }
-        }
-        chunks.push(value)
-      }
+    if (response.status >= 300 && response.status < 400) {
+      return { ok: false, reason: 'redirect-rejected' }
     }
-  } catch {
-    return { ok: false, reason: 'fetch-error' }
-  }
+    if (!response.ok) {
+      return { ok: false, reason: 'fetch-error' }
+    }
 
-  const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)))
-  return { ok: true, buffer, mimeHeader }
+    const mimeHeader = (response.headers.get('content-type') ?? '')
+      .split(';')[0]
+      .trim()
+      .toLowerCase()
+    if (mimeHeader === 'image/svg+xml') {
+      return { ok: false, reason: 'svg-rejected' }
+    }
+    if (!ALLOWED_REHOST_MIMES.has(mimeHeader)) {
+      return { ok: false, reason: 'mime-rejected' }
+    }
+
+    const declaredLength = response.headers.get('content-length')
+    if (declaredLength !== null && Number(declaredLength) > MAX_BYTES) {
+      return { ok: false, reason: 'oversized' }
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    if (arrayBuffer.byteLength > MAX_BYTES) {
+      return { ok: false, reason: 'oversized' }
+    }
+    return { ok: true, buffer: Buffer.from(arrayBuffer), mimeHeader }
+  } catch (err) {
+    if (err instanceof SsrfError) return { ok: false, reason: err.reason }
+    const message = err instanceof Error ? err.message : ''
+    return { ok: false, reason: message.includes('timed out') ? 'fetch-timeout' : 'fetch-error' }
+  }
 }
 
 /** Process a single external URL. Returns the new URL on success, or a rejection reason. */
@@ -236,11 +214,6 @@ async function rehostOne(
   }
 
   // HTTP(S) path
-  const safety = await checkUrlSafety(src)
-  if (!safety.safe) {
-    return { rejected: safety.reason }
-  }
-
   const fetched = await fetchWithLimits(src)
   if (!fetched.ok) {
     return { rejected: fetched.reason }

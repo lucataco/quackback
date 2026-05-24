@@ -56,6 +56,8 @@ See the [Cloud Deployment Guide](./cloud/README.md) for internal documentation.
 ```
 deploy/
 ├── README.md              # This file
+├── coolify/               # Coolify/home-server checklist
+│   └── README.md
 ├── cloud/                 # Quackback Cloud (Cloudflare Workers)
 │   ├── README.md          # Cloud deployment guide
 │   ├── wrangler.jsonc     # Base wrangler config
